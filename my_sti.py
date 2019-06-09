@@ -9,7 +9,6 @@
 # ----------------------------------------------------------------------------
 """Create a spectral time intensity summary plot for a data set."""
 
-
 import datetime
 import optparse
 import os
@@ -32,6 +31,8 @@ import scipy
 import scipy.signal
 
 from collections import OrderedDict
+
+import gen_lib as gl
 
 fDict = OrderedDict()
 fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
@@ -277,11 +278,10 @@ def parse_command_line(str_input=None):
 
     return (options, args)
 
-
 if __name__ == "__main__":
-    """
-        Needed to add main function to use outside functions outside of module.
-    """
+    out_dir     = 'output'
+    gl.make_dir(out_dir)
+
 #    sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
 #    eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
 
@@ -292,15 +292,6 @@ if __name__ == "__main__":
     while dates[-1] < eDate:
         dates.append(dates[-1]+datetime.timedelta(days=1))
 
-    cfreqs      = []
-    cfreqs.append('14670000')
-    cfreqs.append('14095600')
-    cfreqs.append('7850000')
-    cfreqs.append('7038600')
-    cfreqs.append('3330000')
-    cfreqs.append('3568600')
-
-
     str_input       = '-p /home/icerx-vm/ICERX/hf_data/'.split()
 
     # Parse the Command Line for configuration
@@ -310,7 +301,11 @@ if __name__ == "__main__":
     for sDate in dates:
         options.start   = sDate.isoformat()
         options.end     = (sDate + datetime.timedelta(days=1)).isoformat()
-        options.outname = '{!s}.png'.format(sDate.strftime('%Y%m%d'))
+
+        fname           = '{!s}.png'.format(sDate.strftime('%Y%m%d'))
+        fpath           = os.path.join(out_dir,fname)
+        options.outname = fpath
+
         options.frames  = len(fDict)
 
         # Activate the DataPlotter
