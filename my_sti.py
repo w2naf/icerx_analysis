@@ -323,14 +323,14 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
 
 if __name__ == "__main__":
     locs        = OrderedDict()
-    locs['west_orange']     = loc = {}
-    loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
-    loc['title']            = 'West Orange, NJ'
-    loc['zaxis']            = (-120,-110)
-
     locs['arrival_heights'] = loc = {}
     loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
     loc['title']            = 'Arrival Heights / McMurdo'
+    loc['zaxis']            = (-120,-110)
+
+    locs['west_orange']     = loc = {}
+    loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
+    loc['title']            = 'West Orange, NJ'
     loc['zaxis']            = (-120,-110)
 
 #    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
