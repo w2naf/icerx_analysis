@@ -34,14 +34,6 @@ from collections import OrderedDict
 
 import gen_lib as gl
 
-fDict = OrderedDict()
-fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
-fDict['14095600Hz'] = {'cfreq':14095600, 'label':'Ham\n 14095.6 kHz'}
-fDict[ '7850000Hz'] = {'cfreq': 7850000, 'label':'CHU\n 7850.0 kHz'}
-fDict[ '7038600Hz'] = {'cfreq': 7038600, 'label':'Ham\n 7038.6 kHz'}
-fDict[ '3330000Hz'] = {'cfreq': 3330000, 'label':'CHU\n 3330.0 kHz'}
-fDict[ '3568600Hz'] = {'cfreq': 3568600, 'label':'Ham\n 3568.6 kHz'}
-
 class DataPlotter(object):
     def __init__(self, control):
         """Initialize a data plotter for STI plotting."""
@@ -142,7 +134,7 @@ class DataPlotter(object):
 #        except (IndexError, KeyError):
 #            cfreq = 0.0
 
-        cfreq   = fDict[self.channel].get('cfreq')
+        cfreq   = self.control.fDict[self.channel].get('cfreq')
 
         if self.control.verbose:
             print('Processing Info: Frame: {!s}/{!s} Bins: {!s} samples_per_stripe: {!s} bin_stride: {!s}'.format(
@@ -208,6 +200,12 @@ class DataPlotter(object):
                 vmin = numpy.real(numpy.median(Pss) - 6.0)
                 vmax = numpy.real(numpy.median(Pss) + (numpy.max(Pss) - numpy.median(Pss)) * 0.61803398875 + 50.0)
 
+            zx  = self.control.fDict[self.channel].get('zaxis')
+
+            if zx:
+                vmin = zx[0]
+                vmax = zx[1]
+
             samp_t0 = matplotlib.dates.date2num(datetime.datetime.utcfromtimestamp(numpy.real(sti_times[0])))
             samp_t1 = matplotlib.dates.date2num(datetime.datetime.utcfromtimestamp(numpy.real(sti_times[-1])))
             _extent  = [samp_t0, samp_t1, extent[2], extent[3]]
@@ -221,11 +219,13 @@ class DataPlotter(object):
             if self.control.ylim:
                 ax.set_ylim(self.control.ylim)
 
+            
+
             plt.sca(ax)
             plt.colorbar(im,orientation='vertical')
             self.im     = im
 
-        ylabel  = fDict[self.channel]['label']
+        ylabel  = self.control.fDict[self.channel]['label']
         ax.set_ylabel(ylabel)
         ax.set_xlim(self.sTime,self.eTime)
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H%M"))
@@ -292,6 +292,8 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
 
     events  = []
     for loc_key,loc_dct in locs.items():
+        fDict       = loc_dct['fDict']
+
         out_dir     = os.path.join('output',loc_key)
         gl.make_dir(out_dir,clear=True)
 
@@ -303,6 +305,7 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
             # Parse the Command Line for configuration
             (options, args) = parse_command_line(str_input)
             options.title   = loc_dct['title']
+            options.fDict   = fDict
             options.frames  = len(fDict)
             options.bins    = n_bins
             options.ylim    = ylim
@@ -322,25 +325,44 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
     return events
 
 if __name__ == "__main__":
+    fDict = OrderedDict()
+    fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
+    fDict['14095600Hz'] = {'cfreq':14095600, 'label':'Ham\n 14095.6 kHz'}
+    fDict[ '7850000Hz'] = {'cfreq': 7850000, 'label':'CHU\n 7850.0 kHz'}
+    fDict[ '7038600Hz'] = {'cfreq': 7038600, 'label':'Ham\n 7038.6 kHz'}
+    fDict[ '3330000Hz'] = {'cfreq': 3330000, 'label':'CHU\n 3330.0 kHz'}
+    fDict[ '3568600Hz'] = {'cfreq': 3568600, 'label':'Ham\n 3568.6 kHz'}
+
     locs        = OrderedDict()
-    locs['arrival_heights'] = loc = {}
-    loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
-    loc['title']            = 'Arrival Heights / McMurdo'
-    loc['zaxis']            = (-120,-110)
+#    locs['arrival_heights'] = loc = {}
+#    loc['fDict']            = fd  = fDict.copy()
+#    loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
+#    loc['title']            = 'Arrival Heights / McMurdo'
+#    loc['zaxis']            = (-120,-110)
 
     locs['west_orange']     = loc = {}
+    loc['fDict']            = fd  = fDict.copy()
     loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
     loc['title']            = 'West Orange, NJ'
-    loc['zaxis']            = (-120,-110)
-
+    fd['14670000Hz']['zaxis']   = (-120,-110)
+    fd['14095600Hz']['zaxis']   = (-120,-110)
+    fd[ '7850000Hz']['zaxis']   = (-120,-100)
+    fd[ '7038600Hz']['zaxis']   = (-120,-100)
+    fd[ '3330000Hz']['zaxis']   = (-120,-80)
+    fd[ '3568600Hz']['zaxis']   = (-120,-80)
+    
 #    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
 #    eDate       = datetime.datetime(2019,1,22,tzinfo=pytz.utc)
 
     sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
     eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
-
     time_step   = datetime.timedelta(hours=24)
     bin_size    = datetime.timedelta(seconds=60)
+
+#    sDate       = datetime.datetime(2019,1,6,tzinfo=pytz.utc)
+#    eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
+#    time_step   = datetime.timedelta(hours=24)
+#    bin_size    = datetime.timedelta(seconds=10*60)
 
 #    time_step   = datetime.timedelta(hours=1)
 #    bin_size    = datetime.timedelta(seconds=1)
