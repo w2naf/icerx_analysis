@@ -202,8 +202,8 @@ class DataPlotter(object):
             # determine image color extent in log scale units
             Pss = sti_psd_data
             if self.control.zaxis:
-                vmin = int(string.split(self.control.zaxis, ':')[0])
-                vmax = int(string.split(self.control.zaxis, ':')[1])
+                vmin = self.control.zaxis[0]
+                vmax = self.control.zaxis[1]
             else:
                 vmin = numpy.real(numpy.median(Pss) - 6.0)
                 vmax = numpy.real(numpy.median(Pss) + (numpy.max(Pss) - numpy.median(Pss)) * 0.61803398875 + 50.0)
@@ -211,7 +211,15 @@ class DataPlotter(object):
             samp_t0 = matplotlib.dates.date2num(datetime.datetime.utcfromtimestamp(numpy.real(sti_times[0])))
             samp_t1 = matplotlib.dates.date2num(datetime.datetime.utcfromtimestamp(numpy.real(sti_times[-1])))
             _extent  = [samp_t0, samp_t1, extent[2], extent[3]]
-            im = ax.imshow(sti_psd_data, cmap='jet', origin='lower', extent=_extent,interpolation='nearest', vmin=vmin, vmax=vmax, aspect='auto')
+
+            # Mark missing data as NaN.
+            tf = sti_psd_data == 0
+            sti_psd_data[tf] = numpy.nan
+
+            im = ax.imshow(sti_psd_data, cmap='viridis', origin='lower', extent=_extent,interpolation='nearest', vmin=vmin, vmax=vmax, aspect='auto')
+
+            if self.control.ylim:
+                ax.set_ylim(self.control.ylim)
 
             plt.sca(ax)
             plt.colorbar(im,orientation='vertical')
@@ -266,6 +274,7 @@ def parse_command_line(str_input=None):
     parser.add_option("-i", "--integration",dest="integration", default=1,          type="int",             help="The number of rasters to integrate for each plot.")
     parser.add_option("-d", "--decimation", dest="decimation",  default=1,          type="int",             help="The decimation factor for the data (integer).")
     parser.add_option("-z", "--zaxis",      dest="zaxis",       default=None,       type="string",          help="zaxis colorbar setting e.g. -50:50")
+    parser.add_option("-y", "--ylim",       dest="ylim",        default=None,       type="string",          help="ylim setting e.g. -50:50")
     parser.add_option("-o", "--outname",    dest="outname",     default='sti.png',  type=str,               help="Name of file that figure will be saved under.")
     parser.add_option("-m", "--mean",       dest="mean",        default=False,      action="store_true",    help="Remove the mean from the data at the PSD processing step.")
     parser.add_option("-v", "--verbose",    dest="verbose",     default=True,       action="store_true",    help="Print status messages to stdout.")
@@ -278,40 +287,84 @@ def parse_command_line(str_input=None):
 
     return (options, args)
 
-if __name__ == "__main__":
-    out_dir     = 'output'
-    gl.make_dir(out_dir)
+def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
+    n_bins      = int(time_step.total_seconds() / bin_size.total_seconds())
 
-#    sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
+    events  = []
+    for loc_key,loc_dct in locs.items():
+        out_dir     = os.path.join('output',loc_key)
+        gl.make_dir(out_dir,clear=True)
+
+#       str_input   = "-p /home/icerx-vm/ICERX/arrival_heights/hf_data/".split()
+        str_input   = "-p {!s}".format(loc_dct['path']).split()
+
+        # Parse the Command Line for configuration
+        (options, args) = parse_command_line(str_input)
+        options.title   = loc_dct['title']
+        options.frames  = len(fDict)
+        options.bins    = n_bins
+        options.ylim    = ylim
+        if loc_dct.get('zaxis'):
+            options.zaxis   = loc_dct['zaxis']
+
+        dt0 = sDate
+        while dt0 < eDate:
+            options.start   = dt0.isoformat()
+            options.end     = (dt0 + time_step).isoformat()
+
+            fname           = '{!s}.png'.format(dt0.strftime('%Y%m%d.%H%M'))
+            fpath           = os.path.join(out_dir,fname)
+            options.outname = fpath
+
+            events.append(options)
+            dt0 += time_step
+
+    return events
+
+if __name__ == "__main__":
+    locs        = OrderedDict()
+    locs['west_orange']     = loc = {}
+    loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
+    loc['title']            = 'West Orange, NJ'
+    loc['zaxis']            = (-120,-110)
+
+    locs['arrival_heights'] = loc = {}
+    loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
+    loc['title']            = 'Arrival Heights / McMurdo'
+    loc['zaxis']            = (-120,-110)
+
+#    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
+#    eDate       = datetime.datetime(2019,1,22,tzinfo=pytz.utc)
+
+#    sDate       = datetime.datetime(2020,1,5,tzinfo=pytz.utc)
 #    eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
 
-    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
-    eDate       = datetime.datetime(2019,1,22,tzinfo=pytz.utc)
+    sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
+    eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
 
-    dates       = [sDate]
-    while dates[-1] < eDate:
-        dates.append(dates[-1]+datetime.timedelta(days=1))
+    time_step   = datetime.timedelta(hours=24)
+    bin_size    = datetime.timedelta(seconds=10*60)
 
-    str_input       = '-p /home/icerx-vm/ICERX/hf_data/'.split()
+#    time_step   = datetime.timedelta(hours=1)
+#    bin_size    = datetime.timedelta(seconds=1)
 
-    # Parse the Command Line for configuration
-    (options, args) = parse_command_line(str_input)
+#    ylim        = (-2.5,2.5)
 
-#    dates   = dates[0:1]
-    for sDate in dates:
-        options.start   = sDate.isoformat()
-        options.end     = (sDate + datetime.timedelta(days=1)).isoformat()
+    ################################################################################ 
+    dct = {}
+    dct['locs']         = locs
+    dct['sDate']        = sDate
+    dct['eDate']        = eDate
+    dct['time_step']    = time_step
+    dct['bin_size']     = bin_size
+    dct['ylim']         = ylim
+    events              = gen_event_list(**dct)
 
-        fname           = '{!s}.png'.format(sDate.strftime('%Y%m%d'))
-        fpath           = os.path.join(out_dir,fname)
-        options.outname = fpath
-
-        options.frames  = len(fDict)
-
+    for event in events:
+        options = event
         # Activate the DataPlotter
         dpc = DataPlotter(options)
         for ch in fDict.keys():
             options.channel = '{!s}:0'.format(ch)
             dpc.plot(options)
-
         dpc.save_figure()
