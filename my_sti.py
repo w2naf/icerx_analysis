@@ -298,17 +298,17 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
 #       str_input   = "-p /home/icerx-vm/ICERX/arrival_heights/hf_data/".split()
         str_input   = "-p {!s}".format(loc_dct['path']).split()
 
-        # Parse the Command Line for configuration
-        (options, args) = parse_command_line(str_input)
-        options.title   = loc_dct['title']
-        options.frames  = len(fDict)
-        options.bins    = n_bins
-        options.ylim    = ylim
-        if loc_dct.get('zaxis'):
-            options.zaxis   = loc_dct['zaxis']
-
         dt0 = sDate
         while dt0 < eDate:
+            # Parse the Command Line for configuration
+            (options, args) = parse_command_line(str_input)
+            options.title   = loc_dct['title']
+            options.frames  = len(fDict)
+            options.bins    = n_bins
+            options.ylim    = ylim
+            if loc_dct.get('zaxis'):
+                options.zaxis   = loc_dct['zaxis']
+
             options.start   = dt0.isoformat()
             options.end     = (dt0 + time_step).isoformat()
 
@@ -336,19 +336,17 @@ if __name__ == "__main__":
 #    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
 #    eDate       = datetime.datetime(2019,1,22,tzinfo=pytz.utc)
 
-#    sDate       = datetime.datetime(2020,1,5,tzinfo=pytz.utc)
-#    eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
-
     sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
-    eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
+    eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
 
     time_step   = datetime.timedelta(hours=24)
-    bin_size    = datetime.timedelta(seconds=10*60)
+    bin_size    = datetime.timedelta(seconds=60)
 
 #    time_step   = datetime.timedelta(hours=1)
 #    bin_size    = datetime.timedelta(seconds=1)
 
 #    ylim        = (-2.5,2.5)
+    ylim        = None
 
     ################################################################################ 
     dct = {}
