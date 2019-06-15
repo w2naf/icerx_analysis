@@ -292,7 +292,7 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
 
     events  = []
     for loc_key,loc_dct in locs.items():
-        fDict       = loc_dct['fDict']
+        fDict       = loc_dct['fDict'].fDict
 
         out_dir     = os.path.join('output',loc_key)
         gl.make_dir(out_dir,clear=True)
@@ -324,40 +324,58 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
 
     return events
 
+class FDict(object):
+    def __init__(self,select='all'):
+        fDict = OrderedDict()
+        if select == 'all':
+            fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
+            fDict['14095600Hz'] = {'cfreq':14095600, 'label':'Ham\n 14095.6 kHz'}
+            fDict[ '7850000Hz'] = {'cfreq': 7850000, 'label':'CHU\n 7850.0 kHz'}
+            fDict[ '7038600Hz'] = {'cfreq': 7038600, 'label':'Ham\n 7038.6 kHz'}
+            fDict[ '3330000Hz'] = {'cfreq': 3330000, 'label':'CHU\n 3330.0 kHz'}
+            fDict[ '3568600Hz'] = {'cfreq': 3568600, 'label':'Ham\n 3568.6 kHz'}
+
+        elif select == 'CHU':
+            fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
+            fDict[ '7850000Hz'] = {'cfreq': 7850000, 'label':'CHU\n 7850.0 kHz'}
+            fDict[ '3330000Hz'] = {'cfreq': 3330000, 'label':'CHU\n 3330.0 kHz'}
+
+        self.fDict = fDict
+
+    def set_prm(self,prm,value,channel=None):
+        if channel is None:
+            for key,dct in self.fDict.items():
+                dct[prm] = value
+        else:
+            if channel in self.fDict.keys():
+                self.fDict[channel][prm] = value
+
 if __name__ == "__main__":
-    fDict = OrderedDict()
-    fDict['14670000Hz'] = {'cfreq':14670000, 'label':'CHU\n 14670.0 kHz'}
-    fDict['14095600Hz'] = {'cfreq':14095600, 'label':'Ham\n 14095.6 kHz'}
-    fDict[ '7850000Hz'] = {'cfreq': 7850000, 'label':'CHU\n 7850.0 kHz'}
-    fDict[ '7038600Hz'] = {'cfreq': 7038600, 'label':'Ham\n 7038.6 kHz'}
-    fDict[ '3330000Hz'] = {'cfreq': 3330000, 'label':'CHU\n 3330.0 kHz'}
-    fDict[ '3568600Hz'] = {'cfreq': 3568600, 'label':'Ham\n 3568.6 kHz'}
+    select  = 'all'
+#    select  = 'CHU'
 
     locs        = OrderedDict()
-#    locs['arrival_heights'] = loc = {}
-#    loc['fDict']            = fd  = fDict.copy()
-#    loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
-#    loc['title']            = 'Arrival Heights / McMurdo'
-#    loc['zaxis']            = (-120,-110)
+    locs['arrival_heights'] = loc = {}
+    loc['path']             = '/home/icerx-vm/ICERX/arrival_heights/hf_data/'
+    loc['title']            = 'Arrival Heights / McMurdo'
+    loc['fDict']            = fd  = FDict(select)
+    fd.set_prm('zaxis', (-120,-110))
 
     locs['west_orange']     = loc = {}
-    loc['fDict']            = fd  = fDict.copy()
     loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
     loc['title']            = 'West Orange, NJ'
-    fd['14670000Hz']['zaxis']   = (-120,-110)
-    fd['14095600Hz']['zaxis']   = (-120,-110)
-    fd[ '7850000Hz']['zaxis']   = (-120,-100)
-    fd[ '7038600Hz']['zaxis']   = (-120,-100)
-    fd[ '3330000Hz']['zaxis']   = (-120,-80)
-    fd[ '3568600Hz']['zaxis']   = (-120,-80)
+    loc['fDict']            = fd  = FDict(select)
+    fd.set_prm('zaxis', (-120,-110), '14670000Hz')
+    fd.set_prm('zaxis', (-120,-110), '14095600Hz')
+    fd.set_prm('zaxis', (-120,-100), '7850000Hz')
+    fd.set_prm('zaxis', (-120,-100), '7038600Hz')
+    fd.set_prm('zaxis', (-120, -80), '3330000Hz')
+    fd.set_prm('zaxis', (-120, -80), '3568600Hz')
     
-#    sDate       = datetime.datetime(2019,1,3,tzinfo=pytz.utc)
-#    eDate       = datetime.datetime(2019,1,22,tzinfo=pytz.utc)
-
     sDate       = datetime.datetime(2019,1,5,tzinfo=pytz.utc)
     eDate       = datetime.datetime(2019,1,9,tzinfo=pytz.utc)
     time_step   = datetime.timedelta(hours=24)
-    bin_size    = datetime.timedelta(seconds=60)
+    bin_size    = datetime.timedelta(seconds=15)
 
 #    sDate       = datetime.datetime(2019,1,6,tzinfo=pytz.utc)
 #    eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
@@ -384,7 +402,7 @@ if __name__ == "__main__":
         options = event
         # Activate the DataPlotter
         dpc = DataPlotter(options)
-        for ch in fDict.keys():
+        for ch in options.fDict.keys():
             options.channel = '{!s}:0'.format(ch)
             dpc.plot(options)
         dpc.save_figure()
