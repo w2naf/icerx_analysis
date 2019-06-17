@@ -287,7 +287,7 @@ def parse_command_line(str_input=None):
 
     return (options, args)
 
-def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
+def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None,num_fft=None):
     n_bins      = int(time_step.total_seconds() / bin_size.total_seconds())
 
     events  = []
@@ -309,6 +309,7 @@ def gen_event_list(locs,sDate,eDate,time_step,bin_size,ylim=None):
             options.frames  = len(fDict)
             options.bins    = n_bins
             options.ylim    = ylim
+            options.num_fft = num_fft
             if loc_dct.get('zaxis'):
                 options.zaxis   = loc_dct['zaxis']
 
@@ -351,8 +352,10 @@ class FDict(object):
                 self.fDict[channel][prm] = value
 
 if __name__ == "__main__":
-    select  = 'all'
-#    select  = 'CHU'
+    draft   = False
+
+#    select  = 'all'
+    select  = 'CHU'
 
     locs        = OrderedDict()
     locs['arrival_heights'] = loc = {}
@@ -360,11 +363,14 @@ if __name__ == "__main__":
     loc['title']            = 'Arrival Heights / McMurdo'
     loc['fDict']            = fd  = FDict(select)
     fd.set_prm('zaxis', (-120,-110))
+#    fd.set_prm('zaxis', (-150,-60))
 
     locs['west_orange']     = loc = {}
     loc['path']             = '/home/icerx-vm/ICERX1/west_orange/hf_data/'
     loc['title']            = 'West Orange, NJ'
     loc['fDict']            = fd  = FDict(select)
+#    fd.set_prm('zaxis', (-90,-80))
+
     fd.set_prm('zaxis', (-120,-110), '14670000Hz')
     fd.set_prm('zaxis', (-120,-110), '14095600Hz')
     fd.set_prm('zaxis', (-120,-100), '7850000Hz')
@@ -377,16 +383,21 @@ if __name__ == "__main__":
     time_step   = datetime.timedelta(hours=24)
     bin_size    = datetime.timedelta(seconds=15)
 
-#    sDate       = datetime.datetime(2019,1,6,tzinfo=pytz.utc)
-#    eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
-#    time_step   = datetime.timedelta(hours=24)
-#    bin_size    = datetime.timedelta(seconds=10*60)
-
 #    time_step   = datetime.timedelta(hours=1)
 #    bin_size    = datetime.timedelta(seconds=1)
 
-#    ylim        = (-2.5,2.5)
+    if draft:
+        sDate       = datetime.datetime(2019,1,6,tzinfo=pytz.utc)
+        eDate       = datetime.datetime(2019,1,7,tzinfo=pytz.utc)
+        time_step   = datetime.timedelta(hours=24)
+        bin_size    = datetime.timedelta(seconds=10*60)
+
+
     ylim        = None
+    num_fft     = 1024
+
+    ylim        = (-1.5,1.5)
+#    num_fft     = 2**19
 
     ################################################################################ 
     dct = {}
@@ -396,6 +407,7 @@ if __name__ == "__main__":
     dct['time_step']    = time_step
     dct['bin_size']     = bin_size
     dct['ylim']         = ylim
+    dct['num_fft']      = num_fft
     events              = gen_event_list(**dct)
 
     for event in events:
